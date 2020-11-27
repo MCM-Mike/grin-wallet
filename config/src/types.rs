@@ -28,6 +28,8 @@ pub struct WalletConfig {
 	pub chain_type: Option<ChainTypes>,
 	/// The port this wallet will run on
 	pub api_listen_port: u16,
+	/// The owner api interface on which to listen
+	pub owner_api_listen_interface: String,
 	/// The port this wallet's owner API will run on
 	pub owner_api_listen_port: Option<u16>,
 	/// Location of the secret for basic auth on the Owner API
@@ -53,6 +55,9 @@ pub struct WalletConfig {
 	pub dark_background_color_scheme: Option<bool>,
 	/// The exploding lifetime (minutes) for keybase notification on coins received
 	pub keybase_notify_ttl: Option<u16>,
+	/// Scaling factor from transaction weight to transaction fee
+	/// should match accept_fee_base parameter in grin-server
+	pub accept_fee_base: Option<u64>,
 }
 
 impl Default for WalletConfig {
@@ -60,6 +65,7 @@ impl Default for WalletConfig {
 		WalletConfig {
 			chain_type: Some(ChainTypes::Mainnet),
 			api_listen_port: 3415,
+			owner_api_listen_interface: "127.0.0.1".to_string(),
 			owner_api_listen_port: Some(WalletConfig::default_owner_api_listen_port()),
 			api_secret_path: Some(".owner_api_secret".to_string()),
 			node_api_secret_path: Some(".api_secret".to_string()),
@@ -71,6 +77,7 @@ impl Default for WalletConfig {
 			tls_certificate_key: None,
 			dark_background_color_scheme: Some(true),
 			keybase_notify_ttl: Some(1440),
+			accept_fee_base: None,
 		}
 	}
 }
@@ -86,6 +93,11 @@ impl WalletConfig {
 		3420
 	}
 
+	/// Default listener port
+	pub fn default_accept_fee_base() -> u64 {
+		500_000
+	}
+
 	/// Use value from config file, defaulting to sensible value if missing.
 	pub fn owner_api_listen_port(&self) -> u16 {
 		self.owner_api_listen_port
@@ -94,7 +106,17 @@ impl WalletConfig {
 
 	/// Owner API listen address
 	pub fn owner_api_listen_addr(&self) -> String {
-		format!("127.0.0.1:{}", self.owner_api_listen_port())
+		format!(
+			"{}:{}",
+			self.owner_api_listen_interface,
+			self.owner_api_listen_port()
+		)
+	}
+
+	/// Accept fee base
+	pub fn accept_fee_base(&self) -> u64 {
+		self.accept_fee_base
+			.unwrap_or_else(|| WalletConfig::default_accept_fee_base())
 	}
 }
 /// Error type wrapping config errors.
